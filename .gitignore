@@ -130,3 +130,5 @@ dmypy.json
 
 #venv
 mute/
+.env
+config.json
