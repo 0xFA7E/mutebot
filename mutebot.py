@@ -6,8 +6,8 @@ import json
 from discord.ext import commands
 from dotenv import load_dotenv
 from decimal import Decimal as dec
+from numpy import interp
 import discord
-
 
 def position(now=None):
     """Credits to Sean B. Palmer, inamidst.com for the snippet"""
@@ -18,10 +18,10 @@ def position(now=None):
     days = dec(diff.days) + (dec(diff.seconds) / dec(86400))
     lunations = dec("0.20439731") + (days * dec("0.03386319269"))
 
-    return round(float(lunations % dec(1)),3)
+    return round(float(lunations % dec(1)), 3)
 
 class Victim():
-    def __init__(self, user_id, interval_limit=20):
+    def __init__(self, user_id, interval_limit=5, base_rate=10):
         self.is_muted = False
         self.id = user_id
         self.mute_time = None
@@ -29,6 +29,7 @@ class Victim():
         self.message_intervals = []
         self.interval_limit = interval_limit
         self.last_message_time = None
+        self.base_rate = base_rate
         #print(f"New victim loaded {self.id}")
 
    # def __repr__(self):
@@ -43,20 +44,34 @@ class Victim():
         delta = message_time - self.last_message_time
         self.message_intervals.append(delta.total_seconds())
         #limit the stored message intervals to certain amount of recent messages
-        while len(self.message_intervals) >= self.interval_limit:
+        while len(self.message_intervals) > self.interval_limit:
             self.message_intervals.pop(0)
         self.last_message_time = message_time
         self.should_mute()
     
     def should_mute(self):
-        #getting the avg interval time
-        avg = sum(self.message_intervals) / len(self.message_intervals)
-        if avg > 100:
-            inverse_rate = 100
-        inverse_rate = 100 - avg
-        moon_phase = position()
 
-        print(inverse_rate * moon_phase)
+        if len(self.message_intervals) < 2:
+            #not enough data yet
+            return
+
+        #this whole algorithm is cursed. All you need to know is if the victim types faster than their avg they get closer to the full base rate
+        #slower and they can subtract the base rate to nothing. The moon's phase makes this weird
+        intervals = [interp(x, [min(self.message_intervals), max(self.message_intervals)], [0,100]) for x in self.message_intervals]
+        clamped_avg = sum(intervals) / len(intervals)
+        #moon_phase = position(datetime(2022,7,14))
+        moon_phase = position()
+        mod_rate = self.base_rate * moon_phase
+        print(f'{self.base_rate}, {moon_phase}, {mod_rate}')
+
+        last_message = interp(intervals[-1], [min(intervals),max(intervals)], [0,clamped_avg])
+        chance = interp(last_message, [0,clamped_avg], [0,mod_rate]) * 100
+
+
+
+
+
+        print(chance)
 
 
 
@@ -113,6 +128,8 @@ class MuteBot(discord.Client):
         if not self.is_target(msg.author):
             return
         print(f"target user found: {msg.author.display_name}")
+        victim = self.targets["users"][msg.author.id]
+        victim.spoke()
 
 
 def main():
