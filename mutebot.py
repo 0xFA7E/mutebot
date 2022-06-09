@@ -47,7 +47,7 @@ class Victim():
 
     #pylint: disable=too-many-instance-attributes
     #eight instance attributes is relevant for us
-    def __init__(self, user_id, interval_limit=5, base_rate=10, mute_duration=10):
+    def __init__(self, user_id, perma=False, interval_limit=5, base_rate=10, mute_duration=10):
         self.is_muted = False
         self.id = user_id
         self.mute_time = None
@@ -56,6 +56,8 @@ class Victim():
         self.interval_limit = interval_limit
         self.last_message_time = None
         self.base_rate = base_rate
+        #flag if this user is config hardcoded
+        self.perma = perma
         #print(f"New victim loaded {self.id}")
 
    # def __repr__(self):
@@ -110,6 +112,7 @@ class Victim():
         """Mute the target for the duration specified""" 
         self.is_muted = True
         self.mute_time = datetime.now() + timedelta(0,self.mute_duration)
+        #print(self.mute_time)
 
     def unmute_check(self):
         """Unmute the target if enough time has elapsed"""
@@ -125,7 +128,7 @@ class MuteBot(discord.Client):
 
         self.configfile = configfile
         self.targets = load_targets(self.configfile)
-        victims = {user : Victim(user) for user in self.targets["users"]}
+        victims = {user : Victim(user, perma=True) for user in self.targets["users"]}
         self.targets["users"] = victims
 
         super().__init__(*args, **kwargs)
@@ -144,8 +147,18 @@ class MuteBot(discord.Client):
         """Checks if a user is in our target list"""
         for role in self.targets['roles']:
             if role in [user_role.id for user_role in user.roles]:
+                if user.id not in self.targets["users"]:
+                    print("Adding user")
+                    self.targets["users"][user.id] = Victim(user.id)
                 return True
-        return user.id in self.targets['users'].keys()
+        if user.id not in self.targets['users'].keys():
+            return False
+        
+        if not self.targets['users'][user.id].perma:
+            #not a hardcoded user and no longer has role, remove
+            self.targets['users'].pop(user.id)
+            return False
+        return True
 
 
     async def on_message(self, msg):
