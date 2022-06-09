@@ -8,6 +8,7 @@ Bot configuration is done with a .env file loaded with the discord bot token
 
 ```
 DISCORD=<BOT TOKEN HERE>
+```
 
 ### Target Configuration
 
