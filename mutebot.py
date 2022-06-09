@@ -121,7 +121,7 @@ class Victim():
 class MuteBot(discord.Client):
     """The discord bot shell. Loads the config, creates victims, and carries out message deletion"""
 
-    def __init__(self,logchannel, *args, configfile='config.json', **kwargs):
+    def __init__(self, *args, configfile='config.json', logchannel=None, **kwargs):
 
         self.configfile = configfile
         self.targets = load_targets(self.configfile)
@@ -129,7 +129,8 @@ class MuteBot(discord.Client):
         self.targets["users"] = victims
 
         super().__init__(*args, **kwargs)
-        self.logchannel = self.get_channel(logchannel)
+        if logchannel:
+            self.logchannel = self.get_channel(logchannel)
 
 
     async def on_ready(self):
@@ -163,8 +164,8 @@ class MuteBot(discord.Client):
 def main():
     load_dotenv()
     token = os.getenv('DISCORD_TOKEN')
-    logchanid = int(os.getenv('LOG_CHANNEL_ID'))
-    bot = MuteBot(logchannel=logchanid,command_prefix='!', help_command=None)
+    #logchanid = int(os.getenv('LOG_CHANNEL_ID'))
+    bot = MuteBot(command_prefix='!', help_command=None)
 
     bot.run(token)
 
