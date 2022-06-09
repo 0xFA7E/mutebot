@@ -1,6 +1,14 @@
 # mutebot
 discord bot that mutes people based on the rate of typing and the phase of the moon
 
+## Installing
+
+```
+git clone https://github.com/0xFA7E/mutebot
+cd mutebot
+pip install -r requirements.txt
+```
+
 ## Config
 
 ### Bot Configuration
